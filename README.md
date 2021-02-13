@@ -87,8 +87,8 @@ We recommend to mount files from the host computer into the container, modify ``
  memory), the full dataset is loaded into GPU memory, so small datasets are preferred in
 simulation.
 
-* Clients share the same model to reduce the memory usage, while server owns two models, one for
-the server model and another for the merged update.
+* Clients share the same model to reduce the memory usage, while the server owns two models, one for
+the server model and the other for the merged update.
 
 * Both the output log and the trained model are stored in ``logs/{DATASET}/{CONTAINER_RANK}/``.
 
@@ -99,7 +99,7 @@ the server model and another for the merged update.
 Using the default setting (500 rounds), the average test accuracy reaches 0.840537 and the
 average test loss reaches 0.535626:
 
-> tail -n 5 logs/femnist/8
+> tail -n 5 logs/femnist/8/output.8
 
 ```
 --- Round 499 of 499: Training 100 clients ---
