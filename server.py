@@ -140,8 +140,8 @@ class Server:
         return ids, groups, num_samples
 
     def save_model(self, log_dir):
-        """Saves the server model on:
-            logs/{self.dataset}/{self.model}.params
+        """Saves the server model to:
+            logs/{self.dataset}/{self.log_rank}/{self.model}.params
         """
         self.model.save_parameters(
             os.path.join(log_dir, self.model_name + ".params"))
