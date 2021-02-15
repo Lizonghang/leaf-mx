@@ -141,7 +141,7 @@ class Server:
 
     def save_model(self, log_dir):
         """Saves the server model to:
-            logs/{self.dataset}/{self.log_rank}/{self.model}.params
+            {log_dir}/{self.model_name}.params
         """
         self.model.save_parameters(
             os.path.join(log_dir, self.model_name + ".params"))
