@@ -26,33 +26,42 @@ class Server:
 
     def select_clients(self, my_round, possible_clients, num_clients=20):
         """Selects num_clients clients randomly from possible_clients.
-
         Note that within function, num_clients is set to
             min(num_clients, len(possible_clients)).
         Args:
+            my_round: The current training round, used for
+                random sampling.
             possible_clients: Clients from which the server can select.
-            num_clients: Number of clients to select; default 20
-        Return:
-            list of (num_train_samples, num_test_samples)
+            num_clients: Number of clients to select, default 20.
+            base_dist: Real data distribution, usually global_dist.
+            display: Visualize data distribution when set to True.
+            metrics_dir: Directory to save metrics files.
+        Returns:
+            clients_info: List of (num_train_samples, num_test_samples)
+                of selected clients.
         """
+        # Randomly select num_clients clients
         num_clients = min(num_clients, len(possible_clients))
         np.random.seed(my_round)
         self.selected_clients = np.random.choice(
             possible_clients, num_clients, replace=False)
-        return [(c.num_train_samples, c.num_test_samples)
-                for c in self.selected_clients]
 
-    def train_model(self, num_epochs=1, batch_size=10, clients=None):
-        """Trains self.model on given clients.
+        clients_info = [(c.num_train_samples, c.num_test_samples)
+                        for c in self.selected_clients]
+        return clients_info
 
-        Trains model on self.selected_clients if clients=None;
-        each client's data is trained with the given number of epochs
+    def train_model(self, my_round, num_epochs, batch_size, clients=None):
+        """Trains model on self.selected_clients if clients=None;
+        Each client's data is trained with the given number of epochs
         and batches.
         Args:
-            clients: list of Client objects.
+            my_round: The current training round, used for learning rate
+                decay.
             num_epochs: Number of epochs to train.
             batch_size: Size of training batches.
-        Return:
+            clients: list of Client objects (optional).
+        Returns:
+            sys_metrics, including:
             bytes_written: number of bytes written by each client to server
                 dictionary with client ids as keys and integer values.
             client computations: number of FLOPs computed by each client
@@ -70,8 +79,9 @@ class Server:
             for c in clients}
 
         for c in clients:
-            c.model.set_params(self.model.get_params())
-            comp, num_samples, update = c.train(num_epochs, batch_size)
+            c.set_model(self.model)
+            comp, num_samples, update = c.train(
+                my_round, num_epochs, batch_size)
             self.merge_updates(num_samples, update)
 
             sys_metrics[c.id][BYTES_READ_KEY] += c.model.size
@@ -81,6 +91,11 @@ class Server:
         return sys_metrics
 
     def merge_updates(self, client_samples, update):
+        """Aggregate updates from clients based on train data size.
+        Args:
+            client_samples: Size of train data used by this client.
+            update: The model trained by this client.
+        """
         merged_update_ = list(self.merged_update.get_params())
         current_update_ = list(update)
         num_params = len(merged_update_)
@@ -93,6 +108,7 @@ class Server:
                 (client_samples * current_update_[p].data()))
 
     def update_model(self):
+        """Update self.model with averaged merged update."""
         merged_update_ = list(self.merged_update.get_params())
         num_params = len(merged_update_)
 
@@ -103,15 +119,16 @@ class Server:
         self.model.set_params(self.merged_update.get_params())
 
         self.total_weight = 0
-        self.merged_update.initialize(
-            init.Zero(), ctx=self.ctx, force_reinit=True)
+        self.merged_update.set_params([])
 
     def test_model(self, clients_to_test, set_to_use='test'):
         """Tests self.model on given clients.
         Tests model on self.selected_clients if clients_to_test=None.
         Args:
             clients_to_test: list of Client objects.
-            set_to_use: dataset to test on. Should be in ['train', 'test'].
+            set_to_use: Dataset to test on, either "train" or "test".
+        Returns:
+            metrics: Dict of metrics returned by the model.
         """
         metrics = {}
 
@@ -119,17 +136,40 @@ class Server:
             clients_to_test = self.selected_clients
 
         for client in clients_to_test:
-            client.model.set_params(self.model.get_params())
+            client.set_model(self.model)
             c_metrics = client.test(set_to_use)
             metrics[client.id] = c_metrics
 
         return metrics
 
-    def get_clients_info(self, clients):
-        """Returns the ids, hierarchies and num_samples for the given clients.
-        Returns info about self.selected_clients if clients=None;
+    def set_model(self, model):
+        """Set the model data to specified model.
         Args:
-            clients: list of Client objects.
+            model: The specified model.
+        """
+        self.model.set_params(model.get_params())
+
+    def online(self, clients):
+        """Return clients that are online.
+        Args:
+            clients: List of all clients registered at this
+                middle server.
+        Returns:
+            online_clients: List of all online clients.
+        """
+        online_clients = clients
+        assert len(online_clients) != 0, "No client available."
+        return online_clients
+
+    def get_clients_info(self, clients):
+        """Returns the ids, groups and num_samples for the given clients.
+        Args:
+            clients: List of Client objects.
+        Returns:
+            ids: List of client_ids for the given clients.
+            groups: Map of {client_id: group_id} for the given clients.
+            num_samples: Map of {client_id: num_samples} for the given
+                clients.
         """
         if clients is None:
             clients = self.selected_clients

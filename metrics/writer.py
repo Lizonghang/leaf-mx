@@ -40,26 +40,26 @@ def print_metrics(round_number,
         metrics: Dict keyed by client id. Each element is a dict of metrics
             for that client in the specified round. The dicts for all clients
             are expected to have the same set of keys.
-        hierarchies: Dict keyed by client id. Each element is a list of hierarchies
-            to which the client belongs.
+        hierarchies: Dict keyed by client id. Each element is a group id to
+            which the client belongs.
         num_samples: Dict keyed by client id. Each element is the number of test
             samples for the client.
-        partition: String. Value of the 'set' column.
+        partition: String. Value of the "set" column.
         metrics_dir: String. Directory for the metrics file. May not exist.
         metrics_name: String. Filename for the metrics file. May not exist.
     """
     os.makedirs(metrics_dir, exist_ok=True)
-    path = os.path.join(metrics_dir, '{}.csv'.format(metrics_name))
+    path = os.path.join(metrics_dir, "{}.csv".format(metrics_name))
 
     columns = COLUMN_NAMES + get_metrics_names(metrics)
     client_data = pd.DataFrame(columns=columns)
     for i, c_id in enumerate(client_ids):
         current_client = {
-            'client_id': c_id,
-            'round_number': round_number,
-            'hierarchy': ','.join(hierarchies.get(c_id, [])),
-            'num_samples': num_samples.get(c_id, np.nan),
-            'set': partition,
+            "client_id": c_id,
+            "round_number": round_number,
+            "hierarchy": hierarchies.get(c_id, -1),
+            "num_samples": num_samples.get(c_id, np.nan),
+            "set": partition,
         }
 
         current_metrics = metrics.get(c_id, {})
@@ -67,13 +67,17 @@ def print_metrics(round_number,
             current_client[metric] = metric_value
         client_data.loc[len(client_data)] = current_client
 
-    mode = 'w' if round_number == 0 else 'a'
+    mode = "a"
+    if ("stat" in metrics_name and round_number == 0 and partition == "train") \
+            or ("sys" in metrics_name and round_number == 1):
+        mode = "w"
+
     print_dataframe(client_data, path, mode)
 
 
-def print_dataframe(df, path, mode='w'):
+def print_dataframe(df, path, mode="w"):
     """Writes the given dataframe in path as a csv"""
-    header = mode == 'w'
+    header = mode == "w"
     df.to_csv(path, mode=mode, header=header, index=False)
 
 

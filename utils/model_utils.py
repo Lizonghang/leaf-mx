@@ -9,18 +9,23 @@ from baseline_constants import INPUT_SIZE
 
 
 def batch_data(data, batch_size, seed):
+    """Return batches of data as an iterator.
+    Args:
+        data: A dict := {"x": NDArray, "y": NDArray} (on one client).
+        batch_size: Number of samples in a batch data.
+        seed: The random number seed.
+    Returns:
+        batched_x: A batch of features of length: batch_size.
+        batched_y: A batch of labels of length: batch_size.
     """
-    data is a dict := {'x': NDArray, 'y': NDArray} (on one client)
-    returns x, y, which are both numpy array of length: batch_size
-    """
-    data_x = data['x']
-    data_y = data['y']
+    data_x = data["x"]
+    data_y = data["y"]
 
     # randomly shuffle data
     mx.random.seed(seed)
-    mx.random.shuffle(data_x)
+    data_x = mx.random.shuffle(data_x)
     mx.random.seed(seed)
-    mx.random.shuffle(data_y)
+    data_y = mx.random.shuffle(data_y)
 
     # loop through mini-batches
     for i in range(0, len(data_x), batch_size):
@@ -73,21 +78,29 @@ def read_data(train_data_dir, test_data_dir):
     return train_clients, train_groups, train_data, test_data
 
 
-def build_net(dataset, model_name, num_classes, ctx, init=init.Xavier()):
-    """Build neural network from {dataset}/{model} and initialize
-    the network (default to be initialized with Xavier)
+def build_net(dataset, model_name, num_classes, ctx, seed=0, init=init.Xavier()):
+    """Build neural network from the file {dataset}/{model_name}.py.
+    Args:
+        dataset: Name of dataset.
+        model_name: Name of neural network model.
+        num_classes: Number of classes to classify.
+        ctx: The training context.
+        init: The model weights initializer.
+    Returns:
+        net: The initialized neural network.
     """
     model_file = "%s/%s.py" % (dataset, model_name)
     if not os.path.exists(model_file):
-        print('Please specify a valid model.')
+        print("Please specify a valid model.")
     model_path = "%s.%s" % (dataset, model_name)
-
-    # build network
     mod = importlib.import_module(model_path)
     build_net_op = getattr(mod, "build_net")
+
+    # build network
     net = build_net_op(num_classes)
 
     # initialize network
+    mx.random.seed(seed)
     net.initialize(init=init, ctx=ctx)
     net(nd.random.uniform(shape=(1, *INPUT_SIZE), ctx=ctx))
 

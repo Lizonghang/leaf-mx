@@ -50,7 +50,6 @@ Default values for hyper-parameters are set in ``utils/args.py``, including:
 | --log-dir | "logs" | string | Directory for log files. |
 | --log-rank | 0 | integer | Identity for current training process (i.e., ``CONTAINER_RANK``). Log files will be written to ``logs/{DATASET}/{CONTAINER_RANK}/`` (e.g., ``logs/femnist/0/``) |
 | --use-val-set | None | None | Set this option to use the validation set, otherwise the test set is used. |
-| --count-ops | None | None | Set this option to enable operation counter, otherwise ``flops=0`` is returned. Enable this will increase the CPU usage and reduce efficiency. |
 | -ctx | -1 | integer | Device used for simulation. -1 for CPU and 0~7 for GPUs.
 
 Some commonly used hyper-parameters can also be set through ``scripts/run.sh``, including:

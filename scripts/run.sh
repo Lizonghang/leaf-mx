@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # variables
-CONTAINER_RANK=10
+CONTAINER_RANK=0
 BATCH_SIZE=5
 LEARNING_RATE=0.01
 NUM_EPOCHS=3
@@ -40,5 +40,4 @@ sudo docker exec -di ${CONTAINER_NAME} bash -c \
             --num-epochs ${NUM_EPOCHS} \
             -lr ${LEARNING_RATE} \
             --log-rank ${CONTAINER_RANK} \
-            -ctx ${USE_GPU} \
-            --count-ops"
+            -ctx ${USE_GPU}"
