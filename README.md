@@ -23,8 +23,7 @@ Enter the ``scripts`` directory and use ``scripts/build-env.dockerfile`` to buil
 
 > sudo docker build -f build-env.dockerfile -t leaf-mx:mxnet1.4.1mkl-cu101-py3.7 .
 
-Run ``scripts/run.sh`` to create the container ``leaf-mx.{CONTAINER_RANK}`` and start the
-simulation:
+Use ``./preprocess.sh -s niid --sf 0.1 -k 100 -t sample --smplseed 0 --spltseed 0`` in ``data/femnist`` to generate dataset and then run
 
 > chmod a+x run.sh && ./run.sh
 
